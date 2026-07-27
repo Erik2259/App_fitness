@@ -42,11 +42,15 @@ En el servicio del backend → **Variables**, añade:
 | `ANTHROPIC_API_KEY` | *(opcional)* | Sin ella, el coach responde en modo *dry-run*. Ponla para recibir recomendaciones reales de Claude. |
 | `LLM_MODEL` | `claude-sonnet-4-5` | Opcional. |
 
-> **No** definas `PORT`: Railway lo inyecta automáticamente y el contenedor ya lo usa.
-
 ### 5. Generar el dominio público
 En el servicio del backend → **Settings → Networking → Generate Domain**.
-Obtendrás algo como `app-fitness-production.up.railway.app`.
+Cuando pregunte **"Enter the port your app is listening on"**, deja el valor
+sugerido **`8080`** y pulsa *Generate Domain*. Railway inyecta la variable `PORT`
+con ese número y el contenedor (`uvicorn --port ${PORT:-8000}`) escucha ahí, así que
+coinciden. Obtendrás un dominio como `app-fitness-production.up.railway.app`.
+
+> Si tras el deploy ves **"Application failed to respond" (502)**, añade en
+> **Variables** un `PORT=8080` explícito para forzar el puerto y redeploya.
 
 *(Opcional)* En **Settings → Deploy → Healthcheck Path** pon `/health` para que
 Railway valide cada despliegue.
