@@ -30,6 +30,22 @@ async def get(
     return result.scalar_one_or_none()
 
 
+async def exists_by_start(
+    db: AsyncSession, usuario_id: uuid.UUID, fecha_inicio: datetime
+) -> bool:
+    """True si ya hay un entrenamiento del usuario con ese instante de inicio.
+
+    Se usa para que reimportar el mismo export no duplique sesiones.
+    """
+    result = await db.execute(
+        select(Entrenamiento.id).where(
+            Entrenamiento.usuario_id == usuario_id,
+            Entrenamiento.fecha_inicio == fecha_inicio,
+        )
+    )
+    return result.first() is not None
+
+
 async def list_for_user(
     db: AsyncSession,
     usuario_id: uuid.UUID,

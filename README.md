@@ -89,7 +89,32 @@ que se obtiene en `/auth/login`. El prefijo es `/api/v1`.
 | `POST` | `/metricas-biometricas` | Upsert del snapshot diario (uno por fecha) |
 | `GET`  | `/metricas-biometricas` | Historial de snapshots |
 | `POST` | `/metricas-biometricas/clasificar` | **Fase 3**: corre K-Means y persiste el clúster de cada día |
+| `POST` | `/ingesta/health-auto-export` | Recibe el JSON de la app *Health Auto Export* y lo vuelca a la BD |
 | `POST` | `/coach/recomendacion` | **Fase 4**: arma el contexto y pide la recomendación al LLM |
+
+## Dashboard web
+
+El backend sirve además un **dashboard de una sola página** en `/` (raíz), pensado
+para abrir en el navegador del móvil. Permite iniciar sesión, ver la carga (TRIMP,
+tonelaje), el estado de recuperación, recalcular el clúster y pedir la recomendación
+del coach. Al estar servido por el propio backend, usa la misma URL que la API (sin
+CORS ni hosting aparte): en local `http://localhost:8000/`, en Railway
+`https://<tu-dominio>/`.
+
+## Meter datos de HealthKit sin Mac (iPhone → backend)
+
+Compilar una app iOS con HealthKit exige un Mac. Camino alternativo sin Mac:
+
+1. Instala **"Health Auto Export — JSON+CSV"** (App Store) en el iPhone.
+2. Crea una automatización de tipo **REST API** apuntando a
+   `https://<tu-dominio>/api/v1/ingesta/health-auto-export`.
+3. Añade el header `Authorization: Bearer <token>` (el token sale de `/auth/login`).
+4. Elige los datos (workouts, HRV, RHR, sueño) y la frecuencia de envío.
+
+El endpoint traduce el JSON (defensivamente, tolerando variaciones de formato/unidades),
+calcula el TRIMP de cada sesión y hace upsert de las métricas diarias. Reimportar el
+mismo export no duplica sesiones. El mapeo exacto puede necesitar ajustes cuando veas
+tu payload real; el JSON crudo de cada workout se guarda en `datos_crudos`.
 
 ### Ejemplo de flujo
 

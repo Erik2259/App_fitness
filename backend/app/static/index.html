@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>AI Fitness Coach</title>
+  <style>
+    :root {
+      --bg: #0b0f17; --card: #141b28; --card2: #1b2434; --border: #26324a;
+      --text: #e6edf7; --muted: #90a0b8; --accent: #5b8cff; --accent2: #38d39f;
+      --warn: #ffb454; --danger: #ff6b6b; --radius: 16px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    .wrap { max-width: 620px; margin: 0 auto; padding: 18px 16px 60px; }
+    h1 { font-size: 22px; margin: 6px 0 2px; }
+    h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+    input, select {
+      width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--card2); color: var(--text); font-size: 16px;
+    }
+    button {
+      width: 100%; padding: 13px; border: 0; border-radius: 12px; font-size: 15px; font-weight: 600;
+      background: var(--accent); color: #fff; cursor: pointer; margin-top: 12px;
+    }
+    button.ghost { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    button:active { opacity: .85; }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat { background: var(--card2); border-radius: 12px; padding: 12px; }
+    .stat .n { font-size: 22px; font-weight: 700; }
+    .stat .l { font-size: 12px; color: var(--muted); }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .pill.optimo { background: rgba(56,211,159,.15); color: var(--accent2); }
+    .pill.alerta_fatiga { background: rgba(255,180,84,.15); color: var(--warn); }
+    .pill.sobreentrenamiento { background: rgba(255,107,107,.15); color: var(--danger); }
+    .pill.sin_clasificar { background: rgba(144,160,184,.15); color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .reco { white-space: pre-wrap; background: var(--card2); border-radius: 12px; padding: 14px; margin-top: 10px; }
+    .muted { color: var(--muted); }
+    .err { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .hidden { display: none; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .topbar button { width: auto; margin: 0; padding: 8px 12px; font-size: 13px; }
+    .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .tiny { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- LOGIN -->
+    <section id="login">
+      <h1>AI Fitness Coach</h1>
+      <p class="sub">Inicia sesión para ver tu carga, recuperación y la recomendación del coach.</p>
+      <div class="card">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" inputmode="email" placeholder="tu@email.com" />
+        <label for="password">Contraseña</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+        <button id="btnLogin">Entrar</button>
+        <button id="btnRegister" class="ghost">Crear cuenta</button>
+        <div class="err" id="loginErr"></div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dash" class="hidden">
+      <div class="topbar">
+        <h1 id="hola">Hola</h1>
+        <button class="ghost" id="btnLogout">Salir</button>
+      </div>
+      <p class="sub" id="perfil"></p>
+
+      <div class="card">
+        <div class="flex-between">
+          <h2 style="margin:0">Recuperación de hoy</h2>
+          <span class="pill sin_clasificar" id="clusterPill">sin_clasificar</span>
+        </div>
+        <button class="ghost" id="btnClasificar">Recalcular estado (K-Means)</button>
+        <div class="tiny muted" id="clasificarMsg" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <h2>Carga reciente</h2>
+        <div class="grid" id="stats"></div>
+      </div>
+
+      <div class="card">
+        <div class="flex-between">
+          <h2 style="margin:0">Coach</h2>
+          <span class="tiny muted" id="modelo"></span>
+        </div>
+        <button id="btnCoach">Pedir recomendación de hoy</button>
+        <div class="reco hidden" id="reco"></div>
+      </div>
+
+      <div class="card">
+        <h2>Entrenamientos</h2>
+        <div id="workouts" class="muted tiny">Cargando…</div>
+      </div>
+
+      <div class="err" id="dashErr"></div>
+    </section>
+  </div>
+
+  <script>
+    const API = "/api/v1";
+    const $ = (id) => document.getElementById(id);
+    const token = () => localStorage.getItem("token");
+    const setToken = (t) => localStorage.setItem("token", t);
+    const clearToken = () => localStorage.removeItem("token");
+
+    async function api(path, { method = "GET", body, form } = {}) {
+      const headers = {};
+      if (token()) headers["Authorization"] = "Bearer " + token();
+      let payload;
+      if (form) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
+        payload = new URLSearchParams(form).toString();
+      } else if (body) {
+        headers["Content-Type"] = "application/json";
+        payload = JSON.stringify(body);
+      }
+      const res = await fetch(API + path, { method, headers, body: payload });
+      if (res.status === 401) { clearToken(); showLogin(); throw new Error("Sesión expirada"); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || ("Error " + res.status));
+      return data;
+    }
+
+    const TIPOS = { running: "🏃 Running", intervalos: "⚡ Intervalos", fuerza: "🏋️ Fuerza", calistenia: "🤸 Calistenia", otro: "• Otro" };
+    const fmtFecha = (s) => { try { return new Date(s).toLocaleDateString("es", { day: "2-digit", month: "short" }); } catch { return s; } };
+    const fmtDur = (s) => s ? Math.round(s / 60) + " min" : "—";
+
+    function showLogin() { $("login").classList.remove("hidden"); $("dash").classList.add("hidden"); }
+    function showDash() { $("login").classList.add("hidden"); $("dash").classList.remove("hidden"); }
+
+    async function login() {
+      $("loginErr").textContent = "";
+      try {
+        const data = await api("/auth/login", { method: "POST", form: { username: $("email").value.trim(), password: $("password").value } });
+        setToken(data.access_token);
+        await loadDashboard();
+      } catch (e) { $("loginErr").textContent = e.message; }
+    }
+
+    async function register() {
+      $("loginErr").textContent = "";
+      const email = $("email").value.trim(), password = $("password").value;
+      if (!email || password.length < 8) { $("loginErr").textContent = "Email válido y contraseña de 8+ caracteres."; return; }
+      try {
+        await api("/auth/register", { method: "POST", body: { email, password, nombre: email.split("@")[0] } });
+        await login();
+      } catch (e) { $("loginErr").textContent = e.message; }
+    }
+
+    async function loadDashboard() {
+      showDash();
+      $("dashErr").textContent = "";
+      try {
+        const me = await api("/auth/me");
+        $("hola").textContent = "Hola, " + (me.nombre || "atleta");
+        const bits = [];
+        if (me.fc_maxima) bits.push("FCmax " + me.fc_maxima);
+        if (me.fc_reposo) bits.push("FCreposo " + me.fc_reposo);
+        $("perfil").textContent = bits.join(" · ") || "Completa tu perfil (FCmax/FCreposo) para calcular el TRIMP.";
+
+        const metricas = await api("/metricas-biometricas?limit=1");
+        setCluster(metricas[0]?.cluster_recuperacion || "sin_clasificar");
+
+        await loadWorkouts();
+      } catch (e) { $("dashErr").textContent = e.message; }
+    }
+
+    function setCluster(c) {
+      const el = $("clusterPill");
+      el.className = "pill " + c;
+      el.textContent = c.replace(/_/g, " ");
+    }
+
+    async function loadWorkouts() {
+      const ws = await api("/entrenamientos?limit=15");
+      if (!ws.length) { $("workouts").innerHTML = "Aún no hay entrenamientos. Envía datos desde Health Auto Export."; return; }
+      let rows = "";
+      for (const w of ws) {
+        rows += `<tr><td>${fmtFecha(w.fecha_inicio)}</td><td>${TIPOS[w.tipo] || w.tipo}</td><td>${fmtDur(w.duracion_segundos)}</td>` +
+                `<td>${w.trimp != null ? w.trimp : "—"}</td><td>${w.distancia_m ? (w.distancia_m/1000).toFixed(1)+" km" : "—"}</td></tr>`;
+      }
+      $("workouts").innerHTML = `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Dur.</th><th>TRIMP</th><th>Dist.</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    async function clasificar() {
+      $("clasificarMsg").textContent = "Calculando…";
+      try {
+        const r = await api("/metricas-biometricas/clasificar", { method: "POST" });
+        if (!r.entrenado) { $("clasificarMsg").textContent = r.motivo || "Faltan métricas para clasificar."; return; }
+        $("clasificarMsg").textContent = "Listo · " + JSON.stringify(r.conteo_por_cluster);
+        const m = await api("/metricas-biometricas?limit=1");
+        setCluster(m[0]?.cluster_recuperacion || "sin_clasificar");
+      } catch (e) { $("clasificarMsg").textContent = e.message; }
+    }
+
+    async function coach() {
+      $("btnCoach").textContent = "Pensando…"; $("btnCoach").disabled = true;
+      try {
+        const r = await api("/coach/recomendacion", { method: "POST", body: { ventana_dias: 7 } });
+        const rc = r.resumen_carga;
+        $("stats").innerHTML =
+          stat(rc.trimp_total, "TRIMP 7d") + stat(rc.trimp_medio_diario, "TRIMP/día") +
+          stat(Math.round(rc.tonelaje_total_kg) + " kg", "Tonelaje") + stat(rc.sesiones, "Sesiones");
+        setCluster(r.cluster_recuperacion);
+        $("modelo").textContent = r.dry_run ? "dry-run (sin API key)" : r.modelo;
+        $("reco").textContent = r.recomendacion;
+        $("reco").classList.remove("hidden");
+      } catch (e) { $("dashErr").textContent = e.message; }
+      finally { $("btnCoach").textContent = "Pedir recomendación de hoy"; $("btnCoach").disabled = false; }
+    }
+
+    const stat = (n, l) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+
+    $("btnLogin").onclick = login;
+    $("btnRegister").onclick = register;
+    $("btnLogout").onclick = () => { clearToken(); showLogin(); };
+    $("btnClasificar").onclick = clasificar;
+    $("btnCoach").onclick = coach;
+    $("password").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+
+    // Arranque
+    if (token()) loadDashboard(); else showLogin();
+  </script>
+</body>
+</html>

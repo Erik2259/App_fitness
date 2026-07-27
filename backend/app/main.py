@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app import models  # noqa: F401  (registra los modelos en Base.metadata)
 from app.api.v1.router import api_router
@@ -10,6 +12,8 @@ from app.db.base import Base
 from app.db.session import engine
 
 settings = get_settings()
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 @asynccontextmanager
@@ -25,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.project_name,
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -46,3 +50,9 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 async def health_check() -> dict:
     """Verifica que la API esté viva y qué entorno está corriendo."""
     return {"status": "ok", "environment": settings.environment}
+
+
+@app.get("/", include_in_schema=False)
+async def dashboard() -> FileResponse:
+    """Sirve el dashboard web (SPA de una sola página) para abrir en el móvil."""
+    return FileResponse(STATIC_DIR / "index.html")

@@ -57,11 +57,21 @@ Railway valide cada despliegue.
 
 ### 6. Abrir desde el iPhone
 En Safari:
-- **Docs interactivas:** `https://<tu-dominio>/docs`
+- **Dashboard (frontend):** `https://<tu-dominio>/` → crea cuenta, inicia sesión y ve tu carga, recuperación y la recomendación del coach.
 - **Salud:** `https://<tu-dominio>/health` → `{"status":"ok","environment":"production"}`
+- **Docs de la API:** `https://<tu-dominio>/docs` (consola para probar endpoints a mano).
 
-Desde `/docs` puedes registrar un usuario, hacer login (botón **Authorize**) y probar
-todos los endpoints directamente desde el móvil.
+### 7. Meter tus datos de HealthKit (sin Mac)
+1. Instala **"Health Auto Export — JSON+CSV"** desde la App Store.
+2. Crea una automatización **REST API** hacia
+   `https://<tu-dominio>/api/v1/ingesta/health-auto-export`.
+3. Header: `Authorization: Bearer <token>` (obtén el token en el dashboard tras
+   iniciar sesión, o en `/docs` → `/auth/login`).
+4. Selecciona workouts, HRV, RHR y sueño, y la frecuencia de envío.
+
+Al recibir el JSON, el backend crea los entrenamientos (con su TRIMP) y actualiza
+las métricas diarias. Luego, en el dashboard, pulsa **Recalcular estado (K-Means)** y
+**Pedir recomendación**.
 
 ---
 
