@@ -1,5 +1,8 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +15,42 @@ from app.db.base import Base
 from app.db.session import engine
 
 settings = get_settings()
+logger = logging.getLogger("uvicorn.error")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def _db_host() -> str:
+    """Host de la BD (sin credenciales) para poder mostrarlo en los logs."""
+    try:
+        return urlparse(settings.database_url).hostname or "?"
+    except Exception:
+        return "?"
+
+
+async def _crear_tablas_con_reintentos(intentos: int = 8, espera: float = 2.5) -> None:
+    """Crea las tablas reintentando: la BD puede tardar unos segundos en estar lista
+    tras un despliegue (p. ej. la red privada de Railway al arrancar)."""
+    ultimo_error: Exception | None = None
+    for intento in range(1, intentos + 1):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("BD lista (host=%s) tras %d intento(s).", _db_host(), intento)
+            return
+        except Exception as exc:  # noqa: BLE001
+            ultimo_error = exc
+            logger.warning(
+                "No se pudo conectar a la BD (host=%s), intento %d/%d: %s",
+                _db_host(), intento, intentos, exc.__class__.__name__,
+            )
+            await asyncio.sleep(espera)
+    logger.error(
+        "Fallo al conectar a la BD host=%s. Revisa DATABASE_URL en el servicio "
+        "(en Railway debe referenciar el Postgres: ${{Postgres.DATABASE_URL}}).",
+        _db_host(),
+    )
+    raise ultimo_error  # type: ignore[misc]
 
 
 @asynccontextmanager
@@ -22,8 +59,7 @@ async def lifespan(app: FastAPI):
     # basta para arrancar; en un entorno con historial de esquema se desactiva
     # (auto_create_tables=False) y se gestiona con migraciones de Alembic.
     if settings.auto_create_tables:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        await _crear_tablas_con_reintentos()
     yield
 
 
