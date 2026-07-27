@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlparse
@@ -18,6 +19,9 @@ settings = get_settings()
 logger = logging.getLogger("uvicorn.error")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+# Railway inyecta el SHA del commit desplegado; sirve para confirmar qué código corre.
+COMMIT = os.getenv("RAILWAY_GIT_COMMIT_SHA", "local")[:7]
 
 
 def _db_host() -> str:
@@ -84,8 +88,8 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 @app.get("/health", tags=["sistema"])
 async def health_check() -> dict:
-    """Verifica que la API esté viva y qué entorno está corriendo."""
-    return {"status": "ok", "environment": settings.environment}
+    """Verifica que la API esté viva, el entorno y el commit desplegado."""
+    return {"status": "ok", "environment": settings.environment, "commit": COMMIT}
 
 
 @app.get("/", include_in_schema=False)
