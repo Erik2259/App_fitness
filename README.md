@@ -65,6 +65,13 @@ docker-compose exec backend alembic revision --autogenerate -m "esquema inicial"
 docker-compose exec backend alembic upgrade head
 ```
 
+## Desplegar en la nube
+
+Para verlo desde el móvil (iPhone/Android) con una URL pública, sigue
+[`DEPLOY.md`](DEPLOY.md) — guía paso a paso para **Railway** (PostgreSQL gestionado
++ backend desde el Dockerfile). El código ya normaliza la `DATABASE_URL` del
+proveedor y escucha en el puerto `$PORT` que asigna la plataforma.
+
 ## API (v1)
 
 Todos los endpoints de datos requieren un JWT (`Authorization: Bearer <token>`),

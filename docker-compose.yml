@@ -25,6 +25,8 @@ services:
       dockerfile: Dockerfile
     container_name: fitness_coach_api
     restart: unless-stopped
+    # En local sí queremos hot-reload (el Dockerfile arranca sin él para producción).
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
