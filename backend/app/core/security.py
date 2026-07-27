@@ -1,30 +1,42 @@
 """Utilidades de seguridad: hashing de contraseñas (bcrypt) y tokens JWT.
 
-Se mantiene deliberadamente sin dependencias de FastAPI ni de la base de datos para
-poder reutilizarse y testearse de forma aislada.
+Se usa la librería `bcrypt` directamente (no passlib): passlib 1.7.4 es incompatible
+con bcrypt >= 5 y falla al inicializarse. bcrypt solo considera los primeros 72 bytes
+de la contraseña, así que se trunca a esa longitud de forma explícita.
+
+Se mantiene sin dependencias de FastAPI ni de la base de datos para poder testearse
+de forma aislada.
 """
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Límite intrínseco de bcrypt: solo usa los primeros 72 bytes de la contraseña.
+_BCRYPT_MAX_BYTES = 72
+
+
+def _to_bytes(password: str) -> bytes:
+    return password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
 
 
 def hash_password(password: str) -> str:
     """Devuelve el hash bcrypt de una contraseña en texto plano."""
-    return _pwd_context.hash(password)
+    return bcrypt.hashpw(_to_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
     """Comprueba una contraseña en texto plano contra su hash almacenado."""
-    return _pwd_context.verify(plain_password, password_hash)
+    try:
+        return bcrypt.checkpw(_to_bytes(plain_password), password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:

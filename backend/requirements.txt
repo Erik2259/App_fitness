@@ -16,7 +16,8 @@ pydantic[email]==2.9.2   # EmailStr requiere email-validator
 python-dotenv==1.0.1
 
 # --- Seguridad (auth JWT + hashing de contraseñas) ---
-passlib[bcrypt]==1.7.4
+# Se usa bcrypt directamente: passlib 1.7.4 es incompatible con bcrypt >= 5.
+bcrypt==4.2.1
 python-jose[cryptography]==3.3.0
 
 # --- Fase 2 (cálculo de carga) y Fase 3 (clustering) ---
