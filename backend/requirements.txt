@@ -1,0 +1,35 @@
+# --- API ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# --- Base de datos ---
+sqlalchemy==2.0.35
+asyncpg==0.29.0        # driver async para la app (FastAPI)
+psycopg2-binary==2.9.9 # driver sync para Alembic (migraciones)
+alembic==1.13.2
+
+# --- Configuración / validación ---
+pydantic==2.9.2
+pydantic-settings==2.5.2
+pydantic[email]==2.9.2   # EmailStr requiere email-validator
+python-dotenv==1.0.1
+
+# --- Seguridad (auth JWT + hashing de contraseñas) ---
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# --- Fase 2 (cálculo de carga) y Fase 3 (clustering) ---
+numpy==2.1.1
+pandas==2.2.3
+scikit-learn==1.5.2
+joblib==1.4.2
+
+# --- Fase 4 (coach LLM) ---
+anthropic==0.39.0
+httpx==0.27.2
+
+# --- Tests ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+aiosqlite==0.20.0      # backend SQLite async para los tests

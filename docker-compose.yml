@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fitness_coach_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitness_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitness_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-fitness_coach}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitness_user} -d ${POSTGRES_DB:-fitness_coach}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fitness_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fitness_coach_api
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      # Nota: usamos el driver asyncpg porque FastAPI + SQLAlchemy 2.0 corren en modo async.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fitness_user}:${POSTGRES_PASSWORD:-fitness_pass}@db:5432/${POSTGRES_DB:-fitness_coach}
+      # Fase 4: coach LLM. Vacía => dry-run (no llama al modelo).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-claude-sonnet-4-5}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fitness_net
+
+volumes:
+  postgres_data:
+    name: fitness_coach_postgres_data
+
+networks:
+  fitness_net:
+    driver: bridge
